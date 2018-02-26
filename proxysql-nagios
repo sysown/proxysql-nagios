@@ -11,6 +11,7 @@ WARNING = 1
 CRITICAL = 2
 UNKNOWN = 3
 
+version = '1.0.0'
 nagioslogger = logging.getLogger(__name__)
 
 def debug_factory(logger, debug_level):
@@ -27,7 +28,7 @@ def get_args():
     """
     Supports the command-line arguments listed below.
     """
-    parser = argparse.ArgumentParser(description="ProxySQL Nagios Check")
+    parser = argparse.ArgumentParser(description="ProxySQL Nagios Check version %s" % version)
     parser._optionals.title = "Options"
     parser.add_argument('-u', '--user', required=False,
                         help='ProxySQL admin username (default=admin)', dest='user', type=str, default='admin')
