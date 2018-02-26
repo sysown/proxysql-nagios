@@ -33,7 +33,7 @@ usage: proxysql-nagios [-h] [-u USER] [-p PASSWD] [-H HOST] [-P PORT]
                        [-c CRIT_THRESH] [-i INCLUDE_HG] [-g IGNORE_HG]
                        [--log-file LOGFILE] [--text]
 
-ProxySQL Nagios Check
+ProxySQL Nagios Check version 1.0.0
 
 Options:
   -h, --help            show this help message and exit
