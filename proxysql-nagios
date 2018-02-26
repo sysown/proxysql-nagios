@@ -46,6 +46,10 @@ def get_args():
                         help='ProxySQL variable name to check', dest='var_name', type=str, default=None)
     parser.add_argument('-l', '--lower', required=False,
                         help='Alert if ProxySQL value are LOWER than defined WARN / CRIT thresholds (only applies to "var" check type', dest='lower', action='store_true')
+    parser.add_argument('-r', '--runtime', required=False,
+                        help='Force ProxySQL Nagios check to query the runtime_mysql_XXX tables rather than the mysql_XXX tables, although this is more correct ' \
+                             'it can lead to excessive logging in ProxySQL and needs to be explicitely enabled (applies to "conns", "hg" and "rules" check types)',
+                             dest='runtime', action='store_true')
     parser.add_argument('-w', '--warning', required=False,
                         help='Warning threshold', dest='warn_thresh', type=int, default=None)
     parser.add_argument('-c', '--critical', required=False,
@@ -125,12 +129,17 @@ def pvar_check(pconn, nagioslogger, args):
 
 def pconn_check(pconn, nagioslogger, args):
     pcursor = pconn.cursor(MySQLdb.cursors.DictCursor)
-    pcursor.execute('SELECT hostgroup_id hg, srv_host srv, ConnUsed/max_connections pct_used ' \
-                    'FROM main.runtime_mysql_servers r ' \
+    if args.runtime:
+        srv_table = 'runtime_mysql_servers'
+    else:
+        srv_table = 'mysql_servers'
+    pcursor.execute('SELECT hostgroup_id hg, srv_host srv, port, ConnUsed/max_connections pct_used ' \
+                    'FROM main.%s r ' \
                     'JOIN stats.stats_mysql_connection_pool s ' \
                     'ON r.hostgroup_id = s.hostgroup ' \
                     'AND srv_host = hostname ' \
-                    'ORDER BY pct_used desc;')
+                    'AND srv_port = port ' \
+                    'ORDER BY pct_used desc;' % srv_table)
     output_values = pcursor.fetchall()
 
     fmt_ok_output = list()
@@ -139,7 +148,7 @@ def pconn_check(pconn, nagioslogger, args):
     fmt_unk_output = list()
 
     for output_value in output_values:
-        vals = ('hg: %s' % output_value['hg'], 'srv: %s' % output_value['srv'], 'pct_used: %s%%' % output_value['pct_used'])
+        vals = ('hg: %s' % output_value['hg'], 'srv: %s' % output_value['srv'], 'port: %s' % output_value['port'], 'pct_used: %s%%' % output_value['pct_used'])
         if int(output_value['pct_used']) < args.warn_thresh:
             fmt_ok_output.append(', '.join(vals))
         elif int(output_value['pct_used']) >= args.crit_thresh:
@@ -175,43 +184,55 @@ def phg_check(pconn, nagioslogger, args):
         include_hg = ''
 
     max_thresh = max(args.warn_thresh, args.crit_thresh)
+    if args.runtime:
+        srv_table = 'runtime_mysql_servers'
+    else:
+        srv_table = 'mysql_servers'
     pcursor = pconn.cursor(MySQLdb.cursors.DictCursor)
     pcursor.execute('SELECT hostgroup_id hg,count(status) cnt ' \
-                    'FROM runtime_mysql_servers ' \
+                    'FROM main.%s ' \
                     'WHERE status = "ONLINE" %s %s '\
-                    'GROUP BY hg having cnt <= %s;' % (include_hg, ignore_hg, max_thresh))
+                    'GROUP BY hg having cnt <= %s;' % (srv_table, include_hg, ignore_hg, max_thresh))
     output_values = pcursor.fetchall()
     pconn.close()
 
     if len(output_values) == 0:
         nagioslogger.info("ProxySQL Hostgroups: ALL OK")
-        sys.rexit(OK)
+        sys.exit(OK)
     else:
         fmt_warn_output = list()
         fmt_crit_output = list()
         fmt_unk_output = list()
         for output_value in output_values:
             if int(output_value['cnt']) <= args.crit_thresh:
-                fmt_crit_output.append(', '.join(vals))
+                fmt_crit_output.append(', '.join(['hg: %s' % output_value['hg'],'online_cnt: %s' % output_value['cnt']]))
             elif int(output_value['cnt']) <= args.warn_thresh:
-                fmt_warn_output.append(', '.join(vals))
+                fmt_warn_output.append(', '.join(['hg: %s' % output_value['hg'],'online_cnt: %s' % output_value['cnt']]))
             else:
-                fmt_unk_output.append(', '.join(vals))
+                fmt_unk_output.append(', '.join(['hg: %s' % output_value['hg'],'online_cnt: %s' % output_value['cnt']]))
         if len(fmt_unk_output) > 0:
             nagioslogger.unknown("ProxySQL Hostgroups: %s" % fmt_unk_output) if not args.text_output else nagioslogger.info("ProxySQL Hostgroups: %s" % fmt_unk_output)
             sys.exit(UNKNOWN)
         elif len(fmt_crit_output) > 0:
-            nagioslogger.critical("ProxySQL Hostgroups: %s" % fmt_crit_output)
-            sys.exit(CRITICAL)
+            if len(fmt_warn_output) > 0:
+                nagioslogger.critical("ProxySQL Hostgroups: CRIT - %s WARN - %s" % (fmt_crit_output, fmt_warn_output))
+                sys.exit(CRITICAL)
+            else:
+                nagioslogger.critical("ProxySQL Hostgroups: %s" % fmt_crit_output)
+                sys.exit(CRITICAL)
         elif len(fmt_warn_output) > 0:
             nagioslogger.warning("ProxySQL Hostgroups: %s" % fmt_warn_output)
             sys.exit(WARNING) 
 
 def prules_check(pconn, nagioslogger, args):
+    if args.runtime:
+        srv_table = 'runtime_mysql_query_rules'
+    else:
+        srv_table = 'mysql_query_rules'
     pcursor = pconn.cursor()
     pcursor.execute('SELECT * ' \
-                    'FROM runtime_mysql_query_rules r ' \
-                    'WHERE active = 1 ')
+                    'FROM main.%s r ' \
+                    'WHERE active = 1 ' % srv_table)
     routput_values = pcursor.fetchall()
     pcursor.execute('SELECT * '\
                     'FROM disk.mysql_query_rules d ' \
