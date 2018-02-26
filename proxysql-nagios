@@ -34,9 +34,9 @@ def get_args():
     parser.add_argument('-p', '--password', required=False,
                         help='ProxySQL admin password (default=admin)', dest='passwd', type=str, default='admin')
     parser.add_argument('-H', '--host', required=False,
-                        help='ProxySQL hostname / IP (default=127.0.0.1)', dest='host', type=str, default='127.0.0.1')
+                        help='ProxySQL hostname / IP (default=127.0.0.1)', dest='host', type=str, default=None)
     parser.add_argument('-P', '--port', required=False,
-                        help='ProxySQL admin port (default=6032)', dest='port', type=int, default=6032)
+                        help='ProxySQL admin port (default=6032)', dest='port', type=int, default=None)
     parser.add_argument('-d', '--defaults-file', required=False,
                         help='ProxySQL defaults file (include the path to the file location and specify [proxysql-nagios] group)', dest='defaults_file', type=str, default=None)
     parser.add_argument('-t', '--type', required=True,
@@ -65,10 +65,21 @@ def proxysql_conn(host, port, user, passwd, defaults_file=None, timeout=60):
     conn = None
     try:
         if defaults_file:
-            conn = MySQLdb.connect(read_default_file=defaults_file,
-                                   read_default_group='proxysql-nagios',
-                                   connect_timeout=timeout)
+            if host is None and port is None:
+                conn = MySQLdb.connect(read_default_file=defaults_file,
+                                       read_default_group='proxysql-nagios',
+                                       connect_timeout=timeout)
+            else:
+                conn = MySQLdb.connect(host=host,
+                                       port=port,
+                                       read_default_file=defaults_file,
+                                       read_default_group='proxysql-nagios',
+                                       connect_timeout=timeout)
         else:
+            if host is None:
+                host = '127.0.0.1'
+            if port is None:
+                port = 6032
             conn = MySQLdb.connect(host=host,
                                    port=port,
                                    user=user,
@@ -76,7 +87,6 @@ def proxysql_conn(host, port, user, passwd, defaults_file=None, timeout=60):
                                    connect_timeout=timeout)
         conn.autocommit(True)
     except Exception as e:
-        print e
         raise
     return conn
 
