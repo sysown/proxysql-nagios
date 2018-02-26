@@ -176,11 +176,11 @@ def pconn_check(pconn, nagioslogger, args):
 
 def phg_check(pconn, nagioslogger, args):
     if args.ignore_hg is not None:
-        ignore_hg = 'AND hostgroup_id NOT IN (%s)' % ignore_hg
+        ignore_hg = 'AND hostgroup_id NOT IN (%s)' % args.ignore_hg
     else:
         ignore_hg = ''
     if args.include_hg is not None:
-        include_hg = 'AND hostgroup_id IN (%s)' % include_hg
+        include_hg = 'AND hostgroup_id IN (%s)' % args.include_hg
     else:
         include_hg = ''
 
