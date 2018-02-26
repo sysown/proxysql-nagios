@@ -177,14 +177,14 @@ define service{
         use                             pull-alerts
         hostgroup_name                  proxysql-nodes
         service_description             ProxySQL Reader Hostgroup Availability
-        check_command                   check_proxysql_hg!1!0
+        check_command                   check_proxysql_hg!1!0!2
         }
 
 define service{
         use                             pull-alerts
         hostgroup_name                  proxysql-nodes
         service_description             ProxySQL Writer Hostgroup Availability
-        check_command                   check_proxysql_hg!0!0
+        check_command                   check_proxysql_hg!0!0!1
         }
 
 define service{
@@ -213,7 +213,7 @@ define command{
 
 define command{
         command_name    check_proxysql_hg
-        command_line    $USER1$/proxysql-nagios -H $HOSTADDRESS$ -P $_HOSTPADMIN_PORT$ -d /etc/nagios/proxysql.cnf -t hg -w $ARG1$ -c $ARG2$
+        command_line    $USER1$/proxysql-nagios -H $HOSTADDRESS$ -P $_HOSTPADMIN_PORT$ -d /etc/nagios/proxysql.cnf -t hg -w $ARG1$ -c $ARG2$ --include $ARG3$
         }
 
 define command{
