@@ -75,6 +75,10 @@ def proxysql_conn(host, port, user, passwd, defaults_file=None, timeout=60):
                                        read_default_group='proxysql-nagios',
                                        connect_timeout=timeout)
             else:
+                if host is None:
+                    host = '127.0.0.1'
+                if port is None:
+                    port = 6032
                 conn = MySQLdb.connect(host=host,
                                        port=port,
                                        read_default_file=defaults_file,
