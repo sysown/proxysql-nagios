@@ -4,12 +4,12 @@ Introduction
 ProxySQL is a high performance, high availability, protocol aware proxy for MySQL and forks (like Percona Server and MariaDB).
 All the while getting the unlimited freedom that comes with a GPL license.
 
-Its development is driven by the lack of open source proxies that provide high performance.  
+Its development is driven by the lack of open source proxies that provide high performance.
 
-Official website: http://www.proxysql.com/  
-Benchmarks and old blog posts can be found at http://www.proxysql.blogspot.com/  
-Forum: https://groups.google.com/forum/#proxysql/  
-Wiki: https://github.com/sysown/proxysql/wiki/  
+Official website: http://www.proxysql.com/
+Benchmarks and old blog posts can be found at http://www.proxysql.blogspot.com/
+Forum: https://groups.google.com/forum/#proxysql/
+Wiki: https://github.com/sysown/proxysql/wiki/
 Linkedin group: https://www.linkedin.com/groups/13581070/
 
 This repository contains `proxysql-nagios`, a script for monitoring ProxySQL using Nagios (or a Nagios drop in replacement such as Icinga or Shinken). In addition, you have the option of outputting regular `--text` format as well as to log to a `--logfile` in order to use this for a different monitoring tool or log monitoring.
@@ -22,7 +22,7 @@ The script has the ability to monitor the following:
 - Service uptime status
 
 ```
-## You may first need to install system Python & MySQL dev packages as well as MySQL-python 
+## You may first need to install system Python & MySQL dev packages as well as MySQL-python
 sudo apt install python-dev libmysqlclient-dev
 sudo pip install MySQL-python
 
@@ -86,6 +86,8 @@ Below you can also find a sample Nagios configuration file for a set of three Pr
 user=radmin
 password=radmin
 ```
+
+## Nagios configuration
 
 ##### Nagios config file excerpt... (not complete):
 ```
@@ -221,3 +223,15 @@ define command{
         command_line    $USER1$/proxysql-nagios -H $HOSTADDRESS$ -P $_HOSTPADMIN_PORT$ -d /etc/nagios/proxysql.cnf -t rules --runtime
         }
 ```
+
+## Icinga configuration
+
+Icinga configuration examples are in the icinga2 directory.
+Deploy the `proxysql-nagios` script on the server to monitor, i.e., `/usr/lib/nagios/plugins/check_proxysql`.
+
+Set the correct path to the script and add `icinga2/check_proxysql.conf` in your icinga global-template zone.
+```
+    command = [ PluginDir + "/check_proxysql" ]
+```
+
+Add check rules in your icinga2 config, there are some examples in `icinga2/services.conf`.
