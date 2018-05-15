@@ -138,7 +138,7 @@ def pconn_check(pconn, nagioslogger, args):
         srv_table = 'runtime_mysql_servers'
     else:
         srv_table = 'mysql_servers'
-    pcursor.execute('SELECT hostgroup_id hg, srv_host srv, port, ConnUsed/max_connections pct_used ' \
+    pcursor.execute('SELECT hostgroup_id hg, srv_host srv, port, cast((ConnUsed*1.0/max_connections)*100 as int) pct_used ' \
                     'FROM main.%s r ' \
                     'JOIN stats.stats_mysql_connection_pool s ' \
                     'ON r.hostgroup_id = s.hostgroup ' \
