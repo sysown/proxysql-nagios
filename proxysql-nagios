@@ -180,11 +180,11 @@ def pconn_check(pconn, nagioslogger, args):
 
 def phg_check(pconn, nagioslogger, args):
     if args.ignore_hg is not None:
-        ignore_hg = 'AND hostgroup_id NOT IN (%s)' % args.ignore_hg
+        ignore_hg = 'AND hg.hostgroup_id NOT IN (%s)' % args.ignore_hg
     else:
         ignore_hg = ''
     if args.include_hg is not None:
-        include_hg = 'AND hostgroup_id IN (%s)' % args.include_hg
+        include_hg = 'AND hg.hostgroup_id IN (%s)' % args.include_hg
     else:
         include_hg = ''
 
@@ -194,10 +194,13 @@ def phg_check(pconn, nagioslogger, args):
     else:
         srv_table = 'mysql_servers'
     pcursor = pconn.cursor(MySQLdb.cursors.DictCursor)
-    pcursor.execute('SELECT hostgroup_id hg,count(status) cnt ' \
-                    'FROM main.%s ' \
-                    'WHERE status = "ONLINE" %s %s '\
-                    'GROUP BY hg having cnt <= %s;' % (srv_table, include_hg, ignore_hg, max_thresh))
+    pcursor.execute('SELECT hg.hostgroup_id hg,count(s.status) cnt ' \
+                    'FROM main.%s hg ' \
+                    'LEFT JOIN (SELECT * FROM main.%s WHERE status = "ONLINE") s ' \
+                    'ON hg.hostgroup_id = s.hostgroup_id AND hg.hostname = s.hostname AND hg.port = s.port ' \
+                    'WHERE 1 = 1 %s %s '\
+                    'GROUP BY hg having cnt <= %s;' % (srv_table, srv_table, include_hg, ignore_hg, max_thresh))
+
     output_values = pcursor.fetchall()
     pconn.close()
 
