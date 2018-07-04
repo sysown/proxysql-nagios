@@ -62,8 +62,8 @@ Options:
                         runtime_mysql_XXX tables rather than the mysql_XXX
                         tables, although this is more correct it can lead to
                         excessive logging in ProxySQL and needs to be
-                        explicitely enabled (applies to "conns", "hg" and
-                        "rules" check types)
+                        explicitely enabled (applies to "hg" and "rules" check
+                        types)
   -w WARN_THRESH, --warning WARN_THRESH
                         Warning threshold
   -c CRIT_THRESH, --critical CRIT_THRESH
