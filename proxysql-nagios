@@ -49,7 +49,7 @@ def get_args():
                         help='Alert if ProxySQL value are LOWER than defined WARN / CRIT thresholds (only applies to "var" check type', dest='lower', action='store_true')
     parser.add_argument('-r', '--runtime', required=False,
                         help='Force ProxySQL Nagios check to query the runtime_mysql_XXX tables rather than the mysql_XXX tables, although this is more correct ' \
-                             'it can lead to excessive logging in ProxySQL and needs to be explicitely enabled (applies to "conns", "hg" and "rules" check types)',
+                             'it can lead to excessive logging in ProxySQL and needs to be explicitely enabled (applies to "conns" and "rules" check types)',
                              dest='runtime', action='store_true')
     parser.add_argument('-w', '--warning', required=False,
                         help='Warning threshold', dest='warn_thresh', type=int, default=None)
@@ -180,26 +180,23 @@ def pconn_check(pconn, nagioslogger, args):
 
 def phg_check(pconn, nagioslogger, args):
     if args.ignore_hg is not None:
-        ignore_hg = 'AND hg.hostgroup_id NOT IN (%s)' % args.ignore_hg
+        ignore_hg = 'AND sl.hostgroup NOT IN (%s)' % args.ignore_hg
     else:
         ignore_hg = ''
     if args.include_hg is not None:
-        include_hg = 'AND hg.hostgroup_id IN (%s)' % args.include_hg
+        include_hg = 'AND sl.hostgroup IN (%s)' % args.include_hg
     else:
         include_hg = ''
 
     max_thresh = max(args.warn_thresh, args.crit_thresh)
-    if args.runtime:
-        srv_table = 'runtime_mysql_servers'
-    else:
-        srv_table = 'mysql_servers'
     pcursor = pconn.cursor(MySQLdb.cursors.DictCursor)
-    pcursor.execute('SELECT hg.hostgroup_id hg,count(s.status) cnt ' \
-                    'FROM main.%s hg ' \
-                    'LEFT JOIN (SELECT * FROM main.%s WHERE status = "ONLINE") s ' \
-                    'ON hg.hostgroup_id = s.hostgroup_id AND hg.hostname = s.hostname AND hg.port = s.port ' \
-                    'WHERE 1 = 1 %s %s '\
-                    'GROUP BY hg having cnt <= %s;' % (srv_table, srv_table, include_hg, ignore_hg, max_thresh))
+    pcursor.execute('SELECT sl.hostgroup hg,count(sr.hostgroup) cnt ' \
+                    'FROM stats_mysql_connection_pool sl ' \
+                    'LEFT JOIN stats_mysql_connection_pool sr ' \
+                    'ON sl.hostgroup = sr.hostgroup ' \
+                    'AND sl.srv_host = sr.srv_host AND sl.srv_port = sr.srv_port AND sr.status = "ONLINE" ' \
+                    'GROUP BY sl.hostgroup ' \
+                    'HAVING cnt <= %s %s %s;' % (max_thresh, include_hg, ignore_hg))
 
     output_values = pcursor.fetchall()
     pconn.close()
