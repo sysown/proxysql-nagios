@@ -138,13 +138,24 @@ def pconn_check(pconn, nagioslogger, args):
         srv_table = 'runtime_mysql_servers'
     else:
         srv_table = 'mysql_servers'
+
+    if args.ignore_hg is not None:
+        ignore_hg = 'AND s.hostgroup NOT IN (%s)' % args.ignore_hg
+    else:
+        ignore_hg = ''
+    if args.include_hg is not None:
+        include_hg = 'AND s.hostgroup IN (%s)' % args.include_hg
+    else:
+        include_hg = ''
+        
     pcursor.execute('SELECT hostgroup_id hg, srv_host srv, port, cast((ConnUsed*1.0/max_connections)*100 as int) pct_used ' \
                     'FROM main.%s r ' \
                     'JOIN stats.stats_mysql_connection_pool s ' \
                     'ON r.hostgroup_id = s.hostgroup ' \
                     'AND srv_host = hostname ' \
-                    'AND srv_port = port ' \
-                    'ORDER BY pct_used desc;' % srv_table)
+                    'AND srv_port = port %s %s ' \
+                    'ORDER BY pct_used desc;' % (srv_table, ignore_hg, include_hg))
+
     output_values = pcursor.fetchall()
 
     fmt_ok_output = list()
