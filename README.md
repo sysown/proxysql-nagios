@@ -6,11 +6,11 @@ All the while getting the unlimited freedom that comes with a GPL license.
 
 Its development is driven by the lack of open source proxies that provide high performance.
 
-Official website: http://www.proxysql.com/
-Benchmarks and old blog posts can be found at http://www.proxysql.blogspot.com/
-Forum: https://groups.google.com/forum/#proxysql/
-Wiki: https://github.com/sysown/proxysql/wiki/
-Linkedin group: https://www.linkedin.com/groups/13581070/
+- Official website: http://www.proxysql.com/
+- Benchmarks and old blog posts can be found at http://www.proxysql.blogspot.com/
+- Forum: https://groups.google.com/forum/#proxysql/
+- Wiki: https://github.com/sysown/proxysql/wiki/
+- Linkedin group: https://www.linkedin.com/groups/13581070/
 
 This repository contains `proxysql-nagios`, a script for monitoring ProxySQL using Nagios (or a Nagios drop in replacement such as Icinga or Shinken). In addition, you have the option of outputting regular `--text` format as well as to log to a `--logfile` in order to use this for a different monitoring tool or log monitoring.
 
