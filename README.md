@@ -38,9 +38,9 @@ usage: proxysql-nagios [-h] [-u USER] [-p PASSWD] [-H HOST] [-P PORT]
                        [-d DEFAULTS_FILE] -t {conns,hg,rules,status,var}
                        [-n VAR_NAME] [-l] [-r] [-w WARN_THRESH]
                        [-c CRIT_THRESH] [-i INCLUDE_HG] [-g IGNORE_HG]
-                       [--log-file LOGFILE] [--text]
+                       [-m {pct_used,error}] [--log-file LOGFILE] [--text]
 
-ProxySQL Nagios Check version 1.0.0
+ProxySQL Nagios Check version 1.1.0
 
 Options:
   -h, --help            show this help message and exit
@@ -62,8 +62,8 @@ Options:
                         runtime_mysql_XXX tables rather than the mysql_XXX
                         tables, although this is more correct it can lead to
                         excessive logging in ProxySQL and needs to be
-                        explicitely enabled (applies to "hg" and "rules" check
-                        types)
+                        explicitely enabled (applies to "conns" and "rules"
+                        check types)
   -w WARN_THRESH, --warning WARN_THRESH
                         Warning threshold
   -c CRIT_THRESH, --critical CRIT_THRESH
@@ -74,6 +74,9 @@ Options:
   -g IGNORE_HG, --ignore-hostgroup IGNORE_HG
                         ProxySQL hostgroup(s) to ignore (only applies to "--
                         type hg" checks, accepts comma-separated list)
+  -m {pct_used,error}, --metric {pct_used,error}
+                        ProxySQL hostgroup connection metric (one of pct_used,
+                        error; only applies to "--type conn")
   --log-file LOGFILE    File to log to (default = stdout)
   --text                Disable Nagios output mode and output pure text
 ```
@@ -104,6 +107,11 @@ define command{
 define command{
         command_name    check_proxysql_conn_pool
         command_line    $USER1$/proxysql-nagios -H $HOSTADDRESS$ -P $_HOSTPADMIN_PORT$ -d /etc/nagios/proxysql.cnf -t conns -w $ARG1$ -c $ARG2$
+        }
+
+define command{
+        command_name    check_proxysql_conn_pool_error
+        command_line    $USER1$/proxysql-nagios -H $HOSTADDRESS$ -P $_HOSTPADMIN_PORT$ -d /etc/nagios/proxysql.cnf -t conns -m error -w $ARG1$ -c $ARG2$
         }
 
 define command{
