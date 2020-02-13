@@ -11,7 +11,7 @@ WARNING = 1
 CRITICAL = 2
 UNKNOWN = 3
 
-version = '1.0.0'
+version = '1.1.0'
 nagioslogger = logging.getLogger(__name__)
 
 def debug_factory(logger, debug_level):
@@ -59,6 +59,9 @@ def get_args():
                         help='ProxySQL hostgroup(s) to include (only applies to "--type hg" checks, accepts comma-separated list)', dest='include_hg', type=str, default=None)
     parser.add_argument('-g', '--ignore-hostgroup', required=False,
                         help='ProxySQL hostgroup(s) to ignore (only applies to "--type hg" checks, accepts comma-separated list)', dest='ignore_hg', type=str, default=None)
+    parser.add_argument('-m', '--metric', required=False,
+                        help='ProxySQL hostgroup connection metric (one of pct_used, error; only applies to "--type conn")',
+                        dest='conn_metric', choices=['pct_used','error'], type=str, default='pct_used')
     parser.add_argument('--log-file', required=False,
                         help='File to log to (default = stdout)', dest='logfile', type=str)
     parser.add_argument('--text', required=False,
@@ -139,6 +142,15 @@ def pconn_check(pconn, nagioslogger, args):
     else:
         srv_table = 'mysql_servers'
 
+    if args.conn_metric == 'pct_used':
+        q_conn_metric = 'cast((ConnUsed*1.0/max_connections)*100 as int)'
+        conn_metric_name = args.conn_metric
+        conn_metric_unit = '%'
+    elif args.conn_metric == 'error':
+        q_conn_metric = 'ConnERR'
+        conn_metric_name = 'ConnERR'
+        conn_metric_unit = ''
+
     if args.ignore_hg is not None:
         ignore_hg = 'AND s.hostgroup NOT IN (%s)' % args.ignore_hg
     else:
@@ -148,13 +160,13 @@ def pconn_check(pconn, nagioslogger, args):
     else:
         include_hg = ''
         
-    pcursor.execute('SELECT hostgroup_id hg, srv_host srv, port, cast((ConnUsed*1.0/max_connections)*100 as int) pct_used ' \
+    pcursor.execute('SELECT hostgroup_id hg, srv_host srv, port, %s metric ' \
                     'FROM main.%s r ' \
                     'JOIN stats.stats_mysql_connection_pool s ' \
                     'ON r.hostgroup_id = s.hostgroup ' \
                     'AND srv_host = hostname ' \
                     'AND srv_port = port %s %s ' \
-                    'ORDER BY pct_used desc;' % (srv_table, ignore_hg, include_hg))
+                    'ORDER BY metric desc;' % (q_conn_metric, srv_table, ignore_hg, include_hg))
 
     output_values = pcursor.fetchall()
 
@@ -164,12 +176,12 @@ def pconn_check(pconn, nagioslogger, args):
     fmt_unk_output = list()
 
     for output_value in output_values:
-        vals = ('hg: %s' % output_value['hg'], 'srv: %s' % output_value['srv'], 'port: %s' % output_value['port'], 'pct_used: %s%%' % output_value['pct_used'])
-        if int(output_value['pct_used']) < args.warn_thresh:
+        vals = ('hg: %s' % output_value['hg'], 'srv: %s' % output_value['srv'], 'port: %s' % output_value['port'], '%s: %s%s' % (conn_metric_name, output_value['metric'], conn_metric_unit))
+        if int(output_value['metric']) < args.warn_thresh:
             fmt_ok_output.append(', '.join(vals))
-        elif int(output_value['pct_used']) >= args.crit_thresh:
+        elif int(output_value['metric']) >= args.crit_thresh:
             fmt_crit_output.append(', '.join(vals))
-        elif int(output_value['pct_used']) >= args.warn_thresh:
+        elif int(output_value['metric']) >= args.warn_thresh:
             fmt_warn_output.append(', '.join(vals))
         else:
             fmt_unk_output.append(', '.join(vals))
