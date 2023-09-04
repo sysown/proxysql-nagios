@@ -119,7 +119,7 @@ def pvar_check(pconn, nagioslogger, args):
             nagioslogger.unknown("%s: %s" % (args.var_name, output_value)) if not args.text_output else nagioslogger.info("%s %s" % (args.var_name, output_value))
             sys.exit(UNKNOWN)
     else:
-    	if output_value > args.crit_thresh:
+        if output_value > args.crit_thresh:
             nagioslogger.info("%s: %s" % (args.var_name, output_value))
             sys.exit(OK)
         elif output_value <= args.crit_thresh:
@@ -318,9 +318,9 @@ def main():
             pconn_check(pconn, nagioslogger, args)
         # ProxySQL Hostgroup Availability Check
         elif args.check_type == 'hg':
-    	    phg_check(pconn, nagioslogger, args)
+            phg_check(pconn, nagioslogger, args)
         elif args.check_type == 'rules':
-    	    prules_check(pconn, nagioslogger, args)
+            prules_check(pconn, nagioslogger, args)
         # End of Nagios Checks
     except Exception as e:
         nagioslogger.critical('ProxySQL check failed: %s' % e)
